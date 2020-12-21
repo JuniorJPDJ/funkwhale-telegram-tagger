@@ -1,0 +1,15 @@
+version: '2.4'
+
+services:
+  flaczek:
+    build: .
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:9999:9999
+    volumes:
+      - ./data:/app/data
+    environment:
+      TG_APP_ID: fill_me
+      TG_APP_HASH: fill_me
+      FUNKWHALE_APP_TOKEN: fill_me
+      FUNKWHALE_BASE_URL: fill_me
