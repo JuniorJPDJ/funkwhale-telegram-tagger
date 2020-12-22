@@ -49,7 +49,6 @@ async def get_ref(chat_id: ChatId, msg_id: MsgId, timeout=120) -> Optional[Impor
 
 
 async def main():
-
     app = web.Application()
     routes = web.RouteTableDef()
 
@@ -122,6 +121,34 @@ async def main():
             ref = req.match_info['import_ref']
 
             return web.json_response([x async for x in import_get_tracks(ref)])
+
+        @routes.get('/update_tags_track/{track_id}/{chat_id}/{msg_id}')
+        async def import_info(req):
+            id_ = req.match_info['track_id']
+
+            chat = await tg.get_entity(int(req.match_info['chat_id']))
+            if chat is None:
+                raise web.HTTPNotFound()
+
+            msg: Message = await tg.get_messages(chat, ids=int(req.match_info['msg_id']))
+            if msg is None:
+                raise web.HTTPNotFound()
+
+            tags = [f'tg_by_{msg.sender_id}']
+
+            if msg.forward is not None and msg.forward.sender_id:
+                tags.append(f"tg_fwd_from_{msg.forward.sender_id}")
+
+            reply: Message = await msg.get_reply_message()
+            if reply is not None:
+                tags.append(f"tg_reply_to_by_{reply.sender_id}")
+
+                if reply.forward is not None and reply.forward.sender_id:
+                    tags.append(f"tg_reply_to_fwd_from_{reply.forward.sender_id}")
+
+            await add_tags(id_, *tags, edit_summary=f"Sent in Telegram message: https://t.me/c/{chat.id}/{msg.id}")
+
+            return web.Response(text=f"gen tags: {tags}")
 
         @routes.get('/update_tags/{import_ref}/{chat_id}/{msg_id}')
         async def update_tags(req):
