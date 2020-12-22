@@ -3,11 +3,12 @@ import requests
 
 FUNKWHALE_BASE_URL = os.getenv("FUNKWHALE_BASE_URL")
 FUNKWHALE_CHAT_PATH_PREFIX = os.getenv("FUNKWHALE_CHAT_PATH_PREFIX")
+FUNKWHALE_APP_TOKEN = os.getenv("FUNKWHALE_APP_TOKEN")
 
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 sess = requests.Session()
-sess.headers.update({"Authorization": f'Bearer {os.getenv("FUNKWHALE_APP_TOKEN")}'})
+sess.headers.update({"Authorization": f'Bearer {FUNKWHALE_APP_TOKEN}'})
 
 start_page = 40
 next = FUNKWHALE_BASE_URL + f"/api/v1/uploads?page_size=100&ordering=creation_date&page={start_page}"
@@ -27,6 +28,7 @@ while next:
             continue
         track_id = x['track']['id']
 
+        # tgmount filename format
         msgid = x['source'].split(FUNKWHALE_CHAT_PATH_PREFIX, 1)[1].split(" ", 1)[0]
         print("tagging:", src, track_id, msgid)
 

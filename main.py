@@ -94,6 +94,21 @@ async def main():
                     if x['import_status'] in ("skipped", "finished"):
                         yield x
 
+        async def tg_msg_to_tags(msg: Message):
+            tags = [f'tg_by_{msg.sender_id}']
+
+            if msg.forward is not None and msg.forward.sender_id:
+                tags.append(f"tg_fwd_from_{msg.forward.sender_id}")
+
+            reply: Message = await msg.get_reply_message()
+            if reply is not None:
+                tags.append(f"tg_reply_to_by_{reply.sender_id}")
+
+                if reply.forward is not None and reply.forward.sender_id:
+                    tags.append(f"tg_reply_to_fwd_from_{reply.forward.sender_id}")
+
+            return tags
+
         @tg.on(events.NewMessage(incoming=True))
         async def handle_funkwhale_tags(event: events.NewMessage.Event):
             msg: Message = event.message
@@ -104,7 +119,7 @@ async def main():
                 if isinstance(e, telethon.tl.types.MessageEntityHashtag) and txt.startswith("#funkwhale_"):
                     tag = txt[11:]
                     if tag:
-                        tags.add(tag)
+                        tags.add("tgtag_" + tag)
 
             if reply is not None:
                 ref = await get_ref(reply.chat.id, reply.id)
@@ -134,17 +149,7 @@ async def main():
             if msg is None:
                 raise web.HTTPNotFound()
 
-            tags = [f'tg_by_{msg.sender_id}']
-
-            if msg.forward is not None and msg.forward.sender_id:
-                tags.append(f"tg_fwd_from_{msg.forward.sender_id}")
-
-            reply: Message = await msg.get_reply_message()
-            if reply is not None:
-                tags.append(f"tg_reply_to_by_{reply.sender_id}")
-
-                if reply.forward is not None and reply.forward.sender_id:
-                    tags.append(f"tg_reply_to_fwd_from_{reply.forward.sender_id}")
+            tags = await tg_msg_to_tags(msg)
 
             await add_tags(id_, *tags, edit_summary=f"Sent in Telegram message: https://t.me/c/{chat.id}/{msg.id}")
 
@@ -163,17 +168,7 @@ async def main():
             if msg is None:
                 raise web.HTTPNotFound()
 
-            tags = [f'tg_by_{msg.sender_id}']
-
-            if msg.forward is not None and msg.forward.sender_id:
-                tags.append(f"tg_fwd_from_{msg.forward.sender_id}")
-
-            reply: Message = await msg.get_reply_message()
-            if reply is not None:
-                tags.append(f"tg_reply_to_by_{reply.sender_id}")
-
-                if reply.forward is not None and reply.forward.sender_id:
-                    tags.append(f"tg_reply_to_fwd_from_{reply.forward.sender_id}")
+            tags = await tg_msg_to_tags(msg)
 
             tmp = f"gen tags: {tags}"
             out += tmp + "\n"
