@@ -18,23 +18,24 @@ while next:
 
     next = r['next']
     for x in r['results']:
+        # tgmount filename format
         if not x['source'].startswith(FUNKWHALE_CHAT_PATH_PREFIX):
-            print(f"skipping: file out of flaczkownia: {x['source']}")
+            print("skipping: file out of tg chat:", x['source'])
             continue
         src = x['source']
 
         if not x['track'] or 'id' not in x['track'] or not x['track']['id']:
-            print(f"skipping: missing track info: {x['source']}")
+            print("skipping: missing track info:", src)
             continue
         track_id = x['track']['id']
 
         # tgmount filename format
         msgid = x['source'].split(FUNKWHALE_CHAT_PATH_PREFIX, 1)[1].split(" ", 1)[0]
-        print("tagging:", src, track_id, msgid)
+        print("tagging: track:", track_id, "msg:", msgid, src)
 
         r = sess.get(f"http://127.0.0.1:9999/update_tags_track/{track_id}/{TELEGRAM_CHAT_ID}/{msgid}")
         if r.status_code == 404:
-            print(f"skipping: telegram message deleted: {x['source']}")
+            print("failed: telegram message deleted")
             continue
         r.raise_for_status()
         print(r.text)

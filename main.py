@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from collections import OrderedDict as ordered_dict
 
@@ -30,6 +31,7 @@ _ref_cache: OrderedDict[Tuple[ChatId, MsgId], ImportRef] = ordered_dict()
 
 def cache_ref(import_ref: ImportRef, chat_id: ChatId, msg_id: MsgId, cache_size=200):
     _ref_cache[(chat_id, msg_id)] = import_ref
+    logging.debug(f"caching import_ref {import_ref} for {(chat_id, msg_id)}")
     while len(_ref_cache) > cache_size:
         _ref_cache.popitem(False)
 
@@ -45,10 +47,14 @@ async def get_ref(chat_id: ChatId, msg_id: MsgId, timeout=120) -> Optional[Impor
             return _ref_cache[d]
         await asyncio.sleep(0.1)
 
+    logging.debug(f"import_ref for {d} not found in cache, timming out")
     return None
 
 
 async def main():
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('telethon').setLevel(level=logging.INFO)
+
     app = web.Application()
     routes = web.RouteTableDef()
 
@@ -61,15 +67,16 @@ async def main():
         print("Started")
 
         async def add_tags(track_id, *new_tags, edit_summary=""):
-            track = await funk_http.get(FUNKWHALE_BASE_URL + f"/api/v1/tracks/{track_id}", params={
-                'refresh': 'true'
-            })
-            track = await track.json()
+            logging.info(f'adding tags: {new_tags} to track: {track_id} with edit summary: "{edit_summary}"')
+            track = await (await funk_http.get(FUNKWHALE_BASE_URL + f"/api/v1/tracks/{track_id}?refresh=true")).json()
+            logging.debug(f"downloading track info: {track_id}")
             current_tags = set(track['tags'])
+            logging.debug(f"got tags for track {track_id}: {current_tags}")
 
             tags = current_tags | set(new_tags)
 
             if tags != current_tags:
+                logging.info(f"setting tags for track {track_id} to {tags}")
                 await funk_http.post(FUNKWHALE_BASE_URL + f"/api/v1/tracks/{track['id']}/mutations/", json={
                 # print(FUNKWHALE_BASE_URL + f"/api/v1/tracks/{track['id']}/mutations/", {
                     "type": "update",
@@ -77,6 +84,8 @@ async def main():
                     "summary": edit_summary,
                     "is_approved": True
                 })
+            else:
+                logging.info(f"all tags already present on track {track_id}")
 
         async def import_get_tracks(ref):
             imp = await (await funk_http.get(FUNKWHALE_BASE_URL + '/api/v1/uploads/', params={
@@ -121,9 +130,10 @@ async def main():
                     if tag:
                         tags.add("tgtag_" + tag)
 
-            if reply is not None:
+            if reply is not None and tags:
+                logging.info(f"tg message {msg.id} suitable for tagging")
                 ref = await get_ref(reply.chat.id, reply.id)
-                if ref is not None and tags:
+                if ref is not None:
                     async for imp in import_get_tracks(ref):
                         await add_tags(
                             imp['track']['id'],
@@ -132,13 +142,13 @@ async def main():
                         )
 
         @routes.get('/funkwhale_import_info/{import_ref}')
-        async def import_info(req):
+        async def import_info(req: web.Request):
             ref = req.match_info['import_ref']
 
             return web.json_response([x async for x in import_get_tracks(ref)])
 
         @routes.get('/update_tags_track/{track_id}/{chat_id}/{msg_id}')
-        async def import_info(req):
+        async def import_info(req: web.Request):
             id_ = req.match_info['track_id']
 
             chat = await tg.get_entity(int(req.match_info['chat_id']))
@@ -155,8 +165,8 @@ async def main():
 
             return web.Response(text=f"gen tags: {tags}")
 
-        @routes.get('/update_tags/{import_ref}/{chat_id}/{msg_id}')
-        async def update_tags(req):
+        @routes.get('/update_tags_import/{import_ref}/{chat_id}/{msg_id}')
+        async def update_tags(req: web.Request):
             out = ""
             ref = req.match_info['import_ref']
 
@@ -171,15 +181,17 @@ async def main():
             tags = await tg_msg_to_tags(msg)
 
             tmp = f"gen tags: {tags}"
+            logging.info(tmp)
             out += tmp + "\n"
 
             async for imp in import_get_tracks(ref):
                 id_ = imp['track']['id']
 
-                await add_tags(id_, *tags, edit_summary=f"Sent in Telegram message: https://t.me/c/{chat.id}/{msg.id}")
-
-                tmp = f"found track: {id_} with tags {tags}"
+                tmp = f"found track: {id_}"
+                logging.info(tmp)
                 out += tmp + "\n"
+
+                await add_tags(id_, *tags, edit_summary=f"Sent in Telegram message: https://t.me/c/{chat.id}/{msg.id}")
 
             cache_ref(ref, chat.id, msg.id)
 
