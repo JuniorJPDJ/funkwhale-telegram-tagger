@@ -47,7 +47,7 @@ async def get_ref(chat_id: ChatId, msg_id: MsgId, timeout=120) -> Optional[Impor
             return _ref_cache[d]
         await asyncio.sleep(0.1)
 
-    logging.debug(f"import_ref for {d} not found in cache, timming out")
+    logging.debug(f"import_ref for {d} not found in cache, timing out")
     return None
 
 
@@ -73,7 +73,7 @@ async def main():
             current_tags = set(track['tags'])
             logging.debug(f"got tags for track {track_id}: {current_tags}")
 
-            tags = current_tags | set(new_tags)
+            tags = current_tags | set(f.replace('-', '_') for f in new_tags)
 
             if tags != current_tags:
                 logging.info(f"setting tags for track {track_id} to {tags}")
