@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from collections import OrderedDict as ordered_dict
+from pprint import pprint
 
 from aiohttp import web, ClientSession
 from aiohttp.web_runner import GracefulExit
@@ -196,6 +197,11 @@ async def main():
             cache_ref(ref, chat.id, msg.id)
 
             return web.Response(text=out)
+
+        @routes.post('/tgmount-webhook')
+        async def tgmount_webhook(req: web.Request):
+            data = await req.json()
+            pprint(data)
 
         app.add_routes(routes)
         try:
