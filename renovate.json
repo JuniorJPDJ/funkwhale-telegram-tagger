@@ -15,5 +15,8 @@
       ],
       "groupName": "OS Packages"
     }
+  ],
+  "ignoreDeps": [
+    "ghcr.io/juniorjpdj/funkwhale-telegram-tagger"
   ]
 }
