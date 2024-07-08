@@ -14,3 +14,10 @@ services:
       TG_APP_HASH: fill_me
       FUNKWHALE_APP_TOKEN: fill_me
       FUNKWHALE_BASE_URL: fill_me
+      TGMOUNT_CHATS: |-
+        {
+          "-1001234567": {
+              "funkwhale_import_path": "tgmount/-1001234567",
+              "funkwhale_library": "d2925066-b272-49d1-9fa0-e4b0ca1dd8e8"
+          }
+        }
