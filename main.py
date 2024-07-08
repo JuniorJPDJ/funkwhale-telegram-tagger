@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from collections import OrderedDict as ordered_dict
-from pprint import pprint
+import pprint
 
 from aiohttp import web, ClientSession
 from aiohttp.web_runner import GracefulExit
@@ -201,9 +201,23 @@ async def main():
         @routes.post('/tgmount-webhook')
         async def tgmount_webhook(req: web.Request):
             data = await req.json()
-            pprint(data)
+            logging.info(pprint.pformat(data))
+
+            if data.get('voice', False) or data.get('video', False):
+                raise web.HTTPUnprocessableEntity(reason="skipping voice or video message")
+
+            mimetype: str = data.get('mimetype', "")
+            if not (mimetype.startswith("audio/") or mimetype == "application/zip"):
+                raise web.HTTPUnprocessableEntity(reason=f"mime-type not suitable for import: {mimetype}")
+
+            # TODO: run import
+            # TODO: wait for import to finish
+            # TODO: update_tags_import
+
+            return web.Response()
 
         app.add_routes(routes)
+
         try:
             await asyncio.gather(tg.run_until_disconnected(), web._run_app(app, port=9999))
         except (GracefulExit, KeyboardInterrupt):
