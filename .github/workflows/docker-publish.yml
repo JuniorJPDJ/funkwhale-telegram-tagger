@@ -19,7 +19,7 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
-    uses: JuniorJPDJ/containers/.github/workflows/docker-parallel-multiarch-build.yml@master
+    uses: JuniorJPDJ/containers/.github/workflows/docker-parallel-multiarch-build.yml@142f27942f5d0cb18c0c7326754e798cc267e3d8 # master
     with:
       title: funkwhale-telegram-tagger
       platforms: 'linux/amd64,linux/386,linux/arm/v7,linux/arm64'
