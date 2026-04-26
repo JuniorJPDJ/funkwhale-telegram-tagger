@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import random
-import re
 from collections import OrderedDict
 import pprint
 
@@ -82,11 +81,11 @@ async def main():
             logging.info(f'adding tags: {new_tags} to track: {track_id} with edit summary: "{edit_summary}"')
             track = await (await funk_http.get(FUNKWHALE_BASE_URL + f"/api/v2/tracks/{track_id}?refresh=true")).json()
             logging.debug(f"downloading track info: {track_id}")
-            # workaround for Funkwhale bug with spaces in tags
-            current_tags = set(t.replace(' ', '') for t in track['tags'])
+            # workaround for Funkwhale bug with weird characters in tags
+            current_tags = set(re.sub(r'\W', '', t) for t in track['tags'])
             logging.debug(f"got tags for track {track_id}: {current_tags}")
 
-            tags = current_tags | set(re.sub(r'\W', '_', t) for t in new_tags)
+            tags = current_tags | set(t.replace('-', '_') for t in new_tags)
 
             if tags != current_tags:
                 logging.info(f"setting tags for track {track_id} to {tags}")
