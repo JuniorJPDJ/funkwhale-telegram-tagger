@@ -79,7 +79,7 @@ async def main():
 
         async def add_tags(track_id, *new_tags, edit_summary=""):
             logging.info(f'adding tags: {new_tags} to track: {track_id} with edit summary: "{edit_summary}"')
-            track = await (await funk_http.get(FUNKWHALE_BASE_URL + f"/api/v1/tracks/{track_id}?refresh=true")).json()
+            track = await (await funk_http.get(FUNKWHALE_BASE_URL + f"/api/v2/tracks/{track_id}?refresh=true")).json()
             logging.debug(f"downloading track info: {track_id}")
             # workaround for Funkwhale bug with spaces in tags
             current_tags = set(t.replace(' ', '') for t in track['tags'])
@@ -89,7 +89,8 @@ async def main():
 
             if tags != current_tags:
                 logging.info(f"setting tags for track {track_id} to {tags}")
-                await funk_http.post(FUNKWHALE_BASE_URL + f"/api/v1/tracks/{track['id']}/mutations/", json={
+
+                await funk_http.post(FUNKWHALE_BASE_URL + f"/api/v2/tracks/{track['id']}/mutations/", json={
                     "type": "update",
                     "payload": {"tags": list(tags)},
                     "summary": edit_summary,
@@ -99,7 +100,7 @@ async def main():
                 logging.info(f"all tags already present on track {track_id}")
 
         async def import_get_tracks(ref):
-            imp = await (await funk_http.get(FUNKWHALE_BASE_URL + '/api/v1/uploads/', params={
+            imp = await (await funk_http.get(FUNKWHALE_BASE_URL + '/api/v2/uploads/', params={
                 'import_reference': ref,
                 'page_size': 25,
             })).json()
@@ -255,7 +256,7 @@ async def main():
             async with fs_import_lock:
                 while True:
                     import_resp = await funk_http.post(
-                        f"{FUNKWHALE_BASE_URL}/api/v1/libraries/fs-import/",
+                        f"{FUNKWHALE_BASE_URL}/api/v2/libraries/fs-import/",
                         json=import_data,
                         raise_for_status=False,
                     )
@@ -275,7 +276,7 @@ async def main():
                             raise web.HTTPUnprocessableEntity(reason=f"import returned wrong status: {import_resp.status}")
 
                 while True:
-                    import_resp = await funk_http.get(f"{FUNKWHALE_BASE_URL}/api/v1/libraries/fs-import/")
+                    import_resp = await funk_http.get(f"{FUNKWHALE_BASE_URL}/api/v2/libraries/fs-import/")
                     import_data = (await import_resp.json())["import"]
 
                     if import_data["reference"] != funkwhale_import_reference:
