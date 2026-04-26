@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import random
+import re
 from collections import OrderedDict
 import pprint
 
@@ -85,7 +86,7 @@ async def main():
             current_tags = set(t.replace(' ', '') for t in track['tags'])
             logging.debug(f"got tags for track {track_id}: {current_tags}")
 
-            tags = current_tags | set(t.replace('-', '_') for t in new_tags)
+            tags = current_tags | set(re.sub(r'\W', '_', t) for t in new_tags)
 
             if tags != current_tags:
                 logging.info(f"setting tags for track {track_id} to {tags}")
