@@ -270,7 +270,7 @@ async def main():
                             break
                         case 400 if (await import_resp.json() == {"detail": "An import is already running"}):
                             logging.info("import already running, retrying")
-                            await asyncio.sleep(0.2 + (random.randrange(0, 80, 5)/100))
+                            await asyncio.sleep(1 + (random.randrange(0, 80, 5)/100))
                             continue
                         case _:
                             logging.error(f"import returned wrong status ({import_resp.status}) with body: {await import_resp.text()}")
